@@ -13,7 +13,7 @@ Note that the BOF will download all Cookies files from the `msedgewebview2.exe` 
 
 ## BOF Usage
 
-The BOF is supposed to be run within the `ms-teams.exe` Team process. The BOF takes no arguments.
+The BOF is supposed to be run within the `ms-teams.exe` Teams process. The BOF takes no arguments.
 
 <img width="934" height="429" alt="poc" src="https://github.com/user-attachments/assets/7c21e100-4c7b-4c1a-8f7e-fff1e34a1e38" />
 
