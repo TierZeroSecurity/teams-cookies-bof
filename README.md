@@ -15,8 +15,6 @@ Note that the BOF will download all Cookies files from the `msedgewebview2.exe` 
 
 The BOF is supposed to be run within the `ms-teams.exe` Team process. The BOF takes no arguments.
 
-<img width="931" height="475" alt="poc" src="https://github.com/user-attachments/assets/f510e4b2-1616-453e-9a95-fe70f2decba6" />
-
 ## Compile BOF 
 Ensure Mingw-w64 and make is installed on the Linux prior to compiling.
 ```
