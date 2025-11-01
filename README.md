@@ -9,8 +9,6 @@ The BOF will extract the Encryption Key, locate the `msedgewebview2.exe` process
 
 Once the Cookies are downloaded, the Python decryption script (see below) can be used to extract those secrets.
 
-Note that the BOF will download all Cookies files from the `msedgewebview2.exe` processes. This has been implemented for simplicity, to avoid detecting the correct current Teams profile for the user. The retrieved encryption key will only work for one of the downloaded Cookies files, which is the current and correct Teams profile for the user.
-
 ## BOF Usage
 
 The BOF is supposed to be run within the `ms-teams.exe` Teams process. The BOF takes no arguments.
