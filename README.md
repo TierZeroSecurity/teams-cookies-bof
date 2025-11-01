@@ -5,7 +5,7 @@ Based on: [https://blog.randorisec.fr/ms-teams-access-tokens/](https://blog.rand
 
 This tool is heavily based on the [Cookie-Monster-BOF](https://github.com/KingOfTheNOPs/cookie-monster).
 
-The BOF will extract the Encryption Key, locate the `msedgewebview2.exe` processes with a handle to the Cookies file, copy the handle(s) and then filelessly download the target file(s).
+The BOF will extract the Encryption Key, locate the `msedgewebview2.exe` processes with a handle to the Cookies file, copy the handle and then filelessly download the target file.
 
 Once the Cookies are downloaded, the Python decryption script (see below) can be used to extract those secrets.
 
